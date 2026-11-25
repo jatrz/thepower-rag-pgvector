@@ -1,0 +1,53 @@
+# Entornos virtuales
+.venv/
+venv/
+env/
+ENV/
+
+# Credenciales y configuración local
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials.json
+secrets/
+
+# Cachés y artefactos de Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+*.egg-info/
+.eggs/
+dist/
+build/
+pip-wheel-metadata/
+
+# Archivos temporales y de sistema
+*.tmp
+*.temp
+*.log
+*.swp
+*~
+.DS_Store
+Thumbs.db
+
+# Datos locales de PostgreSQL y volcados
+data/postgres/
+data/pgdata/
+pgdata/
+*.dump
+*.sql.gz
+*.backup
+
+# Cachés locales de modelos
+.cache/
+models/
