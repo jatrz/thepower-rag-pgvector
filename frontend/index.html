@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Enterprise RAG: demostración local de consulta documental y aislamiento multiempresa.">
+  <meta name="color-scheme" content="dark light">
+  <title>Enterprise RAG</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2307111f'/%3E%3Cpath d='M7 22V10h4.2v12H7zm6.9 0V10H23v3.1h-5v1.8h4.4v2.9H18v1.8h5V22h-9.1z' fill='%234c8dff'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles.css">
+  <script>
+    try {
+      var temaGuardado = localStorage.getItem("enterprise-rag-theme");
+      if (temaGuardado === "light" || temaGuardado === "dark") {
+        document.documentElement.dataset.theme = temaGuardado;
+      }
+    } catch (error) {
+      /* La preferencia visual es opcional. El modo oscuro sigue disponible. */
+    }
+  </script>
+</head>
+<body>
+  <a class="saltar" href="#contenido">Saltar al contenido</a>
+
+  <header class="cabecera">
+    <div class="marca">
+      <svg class="logotipo" viewBox="0 0 48 48" aria-hidden="true">
+        <rect x="3" y="3" width="42" height="42" rx="12"></rect>
+        <path d="M12 33V15h6.2v18H12zm10.2 0V15H36v4.4h-7.6v2.7h6.6v4.1h-6.6v2.7H36V33H22.2z"></path>
+      </svg>
+      <div>
+        <p class="sobre-titulo">Demostración local</p>
+        <h1>Enterprise RAG</h1>
+        <p class="subtitulo">Inteligencia documental multiempresa</p>
+      </div>
+    </div>
+
+    <div class="cabecera-estado">
+      <ul class="tecnologias" aria-label="Pila tecnológica de la demostración">
+        <li>PostgreSQL</li>
+        <li>pgvector</li>
+        <li>RLS</li>
+        <li>Gemini</li>
+        <li>FastAPI</li>
+      </ul>
+      <p id="estado-postgresql" class="pastilla pendiente" role="status">Comprobando PostgreSQL…</p>
+      <p id="estado-gemini" class="pastilla neutra">Gemini: no comprobado por /api/health</p>
+      <div class="acciones-cabecera">
+        <button type="button" id="boton-actualizar-salud" class="boton secundario">Actualizar estado</button>
+        <button type="button" id="boton-tema" class="boton secundario" aria-pressed="true">Modo claro</button>
+        <a class="boton secundario" href="/docs">Swagger</a>
+      </div>
+    </div>
+  </header>
+
+  <p id="aviso-salud" class="aviso-salud" role="status"></p>
+  <p id="region-estado" class="solo-lectores" aria-live="polite"></p>
+
+  <main id="contenido">
+    <section class="seccion" aria-labelledby="indicadores-titulo">
+      <div class="seccion-encabezado">
+        <h2 id="indicadores-titulo">Indicadores del proyecto</h2>
+        <p>Solo el número de empresas procede de la API. El resto corresponde a la carga inicial y a las pruebas ya superadas.</p>
+      </div>
+      <div class="rejilla-indicadores">
+        <article class="tarjeta indicador">
+          <p class="indicador-etiqueta">Empresas</p>
+          <p id="metric-empresas" class="indicador-valor">—</p>
+          <p id="metric-empresas-nota" class="indicador-nota">Se obtiene de GET /api/empresas.</p>
+        </article>
+        <article class="tarjeta indicador">
+          <p class="indicador-etiqueta">Documentos</p>
+          <p class="indicador-valor">9</p>
+          <p class="indicador-nota">Carga inicial verificada. No es una métrica en tiempo real.</p>
+        </article>
+        <article class="tarjeta indicador">
+          <p class="indicador-etiqueta">Fragmentos vectorizados</p>
+          <p class="indicador-valor">36</p>
+          <p class="indicador-nota">Carga inicial verificada, de 384 dimensiones. No es una métrica en tiempo real.</p>
+        </article>
+        <article class="tarjeta indicador">
+          <p class="indicador-etiqueta">Pruebas automatizadas</p>
+          <p class="indicador-valor">185</p>
+          <p class="indicador-nota">Superadas previamente. Esta pantalla no las vuelve a ejecutar.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="seccion" id="asistente" aria-labelledby="asistente-titulo">
+      <div class="seccion-encabezado">
+        <h2 id="asistente-titulo">Asistente documental</h2>
+        <p id="aviso-empresas">El selector de empresa es una función de demostración local y no autentica al usuario.</p>
+      </div>
+
+      <div class="asistente-rejilla">
+        <form id="formulario-consulta" class="tarjeta formulario" novalidate>
+          <fieldset>
+            <legend>Empresa de la demostración</legend>
+            <div id="selector-empresas" class="selector" role="radiogroup" aria-label="Empresa de la demostración">
+              <p class="estado-suave">Cargando empresas…</p>
+            </div>
+          </fieldset>
+
+          <div class="campo">
+            <label for="pregunta">Pregunta</label>
+            <textarea id="pregunta" name="pregunta" rows="5" maxlength="240" required autocomplete="off" spellcheck="true" placeholder="Escribe una pregunta sobre la documentación de la empresa seleccionada"></textarea>
+            <p id="contador-pregunta" class="contador"><span id="contador-valor">0</span> / 240</p>
+          </div>
+
+          <div class="sugeridas" aria-label="Preguntas sugeridas">
+            <button type="button" class="boton sugerida" data-pregunta="¿Cuántos días de vacaciones tengo?">Vacaciones</button>
+            <button type="button" class="boton sugerida" data-pregunta="¿La empresa me ayuda a pagar la guardería de mi hijo?">Guardería</button>
+            <button type="button" class="boton sugerida" data-pregunta="¿Cuál es la política de teletrabajo?">Teletrabajo</button>
+          </div>
+
+          <div class="fila-botones">
+            <button type="submit" id="boton-consultar" class="boton principal" disabled>Consultar asistente</button>
+            <button type="button" id="boton-cancelar-consulta" class="boton secundario" hidden>Cancelar</button>
+          </div>
+          <p class="nota-formulario">La consulta usa POST /api/consulta. No se guarda la pregunta ni la respuesta en este navegador.</p>
+        </form>
+
+        <div class="tarjeta resultado" aria-live="polite">
+          <div class="resultado-barra">
+            <h3>Resultado</h3>
+            <div class="fila-botones">
+              <button type="button" id="boton-copiar" class="boton secundario" disabled>Copiar respuesta</button>
+              <button type="button" id="boton-limpiar" class="boton secundario" disabled>Limpiar resultados</button>
+            </div>
+          </div>
+
+          <div id="consulta-vacia" class="estado-panel">
+            <p>Aún no hay consulta.</p>
+            <p class="estado-suave">Elige una empresa, escribe una pregunta y pulsa Consultar asistente. No se llama a Gemini al cargar la página.</p>
+          </div>
+
+          <div id="consulta-cargando" class="estado-panel" hidden>
+            <p class="indicador-proceso"><span class="spinner" aria-hidden="true"></span> Consulta en curso</p>
+            <p>La consulta está en curso. Puede tardar más de un minuto. Este cronómetro solo mide el tiempo transcurrido en el navegador y no simula etapas internas.</p>
+            <p>Tiempo transcurrido: <strong id="consulta-cronometro">0 s</strong></p>
+          </div>
+
+          <div id="consulta-error" class="estado-panel error" hidden>
+            <h4>No se pudo completar la consulta</h4>
+            <p id="consulta-error-texto"></p>
+          </div>
+
+          <div id="consulta-resultado" hidden>
+            <dl class="resumen-consulta">
+              <div>
+                <dt>Empresa consultada</dt>
+                <dd id="resultado-empresa"></dd>
+              </div>
+              <div>
+                <dt>Tiempo de ejecución</dt>
+                <dd id="resultado-duracion"></dd>
+              </div>
+              <div>
+                <dt>Fragmentos propios</dt>
+                <dd id="resultado-propios"></dd>
+              </div>
+              <div>
+                <dt>Fragmentos ajenos</dt>
+                <dd id="resultado-ajenos"></dd>
+              </div>
+            </dl>
+
+            <h4>Respuesta de Gemini</h4>
+            <blockquote id="resultado-respuesta"></blockquote>
+
+            <h4>Documentos recuperados</h4>
+            <ul id="resultado-documentos" class="lista"></ul>
+
+            <h4>Fuentes citadas</h4>
+            <p class="estado-suave">Distintas de los fragmentos recuperados: solo se listan las fuentes que el servicio marcó como citadas.</p>
+            <ul id="resultado-fuentes" class="lista"></ul>
+
+            <h4>Fragmentos recuperados</h4>
+            <p id="resultado-similitudes" class="estado-suave"></p>
+            <div id="resultado-fragmentos" class="fragmentos"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="seccion evidencia" id="laboratorio" aria-labelledby="laboratorio-titulo">
+      <div class="seccion-encabezado evidencia-encabezado">
+        <div>
+          <p class="sobre-titulo">PostgreSQL + pgvector + RLS + Gemini</p>
+          <h2 id="laboratorio-titulo">Laboratorio de aislamiento multiempresa</h2>
+          <p>La misma pregunta se ejecuta para dos empresas. Los textos siguientes solo aparecen después de la respuesta real del servidor.</p>
+        </div>
+        <div class="fila-botones no-print">
+          <button type="button" id="boton-aislamiento" class="boton principal">Ejecutar prueba de aislamiento</button>
+          <button type="button" id="boton-cancelar-aislamiento" class="boton secundario" hidden>Cancelar</button>
+          <button type="button" id="boton-imprimir" class="boton secundario" disabled>Imprimir evidencia</button>
+        </div>
+      </div>
+
+      <p class="pregunta-fija"><span>Pregunta fija prevista</span> <strong id="aislamiento-pregunta-prevista">¿La empresa me ayuda a pagar la guardería de mi hijo?</strong></p>
+      <p class="nota-formulario">El servidor no recibe esta pregunta desde el navegador. POST /api/aislamiento utiliza la pregunta fijada en el backend.</p>
+
+      <div id="aislamiento-pendiente" class="estado-panel">
+        <p class="pastilla pendiente">Pendiente de ejecución</p>
+        <p>Todavía no hay resultados reales. La prueba no se ha lanzado.</p>
+      </div>
+
+      <div id="aislamiento-cargando" class="estado-panel" hidden>
+        <p class="indicador-proceso"><span class="spinner" aria-hidden="true"></span> Prueba de aislamiento en curso</p>
+        <p>Se están realizando dos consultas reales. Pueden tardar más de un minuto. No se simulan etapas ni respuestas.</p>
+        <p>Tiempo transcurrido: <strong id="aislamiento-cronometro">0 s</strong></p>
+      </div>
+
+      <div id="aislamiento-error" class="estado-panel error" hidden>
+        <h3>La prueba de aislamiento no pudo completarse</h3>
+        <p id="aislamiento-error-texto"></p>
+      </div>
+
+      <div id="aislamiento-resultado" hidden>
+        <p id="aislamiento-banner" class="banner"></p>
+        <p class="pregunta-ejecutada">Pregunta ejecutada por el servidor: <strong id="aislamiento-pregunta-real"></strong></p>
+        <p id="aislamiento-coherencia" class="nota-coherencia" hidden></p>
+        <div id="aislamiento-tarjetas" class="comparacion"></div>
+        <dl class="resumen-global">
+          <div>
+            <dt>Comprobaciones superadas</dt>
+            <dd id="aislamiento-superadas"></dd>
+          </div>
+          <div>
+            <dt>Tiempo total</dt>
+            <dd id="aislamiento-duracion"></dd>
+          </div>
+          <div>
+            <dt>Resultado global</dt>
+            <dd id="aislamiento-global"></dd>
+          </div>
+        </dl>
+      </div>
+    </section>
+  </main>
+
+  <footer class="pie">
+    <p>Demostración local sin autenticación. Elegir una empresa no identifica al usuario: en producción, el identificador debe proceder de una identidad autenticada por el servidor.</p>
+    <p>Esta interfaz no abre CORS, no usa la conexión administrativa y no modifica las políticas RLS. El servidor debe permanecer en 127.0.0.1.</p>
+  </footer>
+
+  <script src="app.js" defer></script>
+</body>
+</html>

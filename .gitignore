@@ -4,7 +4,8 @@ venv/
 env/
 ENV/
 
-# Credenciales y configuración local
+# Credenciales y configuración local.
+# .env queda excluido; .env.example se vuelve a incluir para poder versionarlo.
 .env
 .env.*
 !.env.example

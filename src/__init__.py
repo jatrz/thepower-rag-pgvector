@@ -1,4 +1,6 @@
-"""Paquete de la aplicación thepower-rag-pgvector.
+"""Paquete del asistente documental multiempresa.
 
-La lógica de ingesta, recuperación y generación se añadirá en fases posteriores.
+Reúne la configuración, la ingesta, la recuperación vectorial, la generación
+con Gemini y la API local de demostración. El aislamiento entre empresas se
+aplica con roles de PostgreSQL y Row-Level Security.
 """

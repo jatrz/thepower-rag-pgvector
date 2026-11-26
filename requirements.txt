@@ -1,6 +1,24 @@
-psycopg[binary]>=3.2.0
-pgvector>=0.3.6
-sentence-transformers>=3.0.0
-google-genai>=1.0.0
-python-dotenv>=1.0.1
-pytest>=8.0.0
+# Dependencias del asistente RAG multiempresa.
+# Verificado con Python 3.14.4. Los embeddings se calculan solo en CPU.
+# No se usan LangChain ni LlamaIndex.
+#
+# El índice adicional es necesario para la build CPU de PyTorch.
+# El wheel torch de PyPI para Linux arrastra CUDA y paquetes NVIDIA;
+# no debe instalarse. La versión 2.15.0+cpu no declara esas dependencias.
+--extra-index-url https://download.pytorch.org/whl/cpu
+
+psycopg[binary]==3.3.9
+pgvector==0.5.1
+sentence-transformers==6.3.0
+torch==2.15.0+cpu
+numpy==2.4.2
+python-dotenv==1.2.4
+google-genai==3.6.1
+pytest==9.2.0
+# Cliente que Starlette 1.10 usa en TestClient. No sustituye al resto del archivo.
+httpx2==2.16.2
+
+# API local de demostración. Verificado con Python 3.14.4.
+# Sin extras: no arrastra uvloop ni modifica python-dotenv ya fijado.
+fastapi==0.165.0
+uvicorn==0.54.0
