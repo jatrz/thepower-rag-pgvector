@@ -1,7 +1,10 @@
 -- Aislamiento multiempresa de fragmentos mediante roles distintos y RLS.
--- Ejecutar con psql, conectado a rag_multitenant como rag_admin:
---   psql -h 127.0.0.1 -p 5433 -U rag_admin -d rag_multitenant -f sql/03_security.sql
+-- Ejecutar con psql, conectado a rag_chatbot como rag_admin:
+--   psql -h 127.0.0.1 -p 5434 -U rag_admin -d rag_chatbot -f sql/03_security.sql
 --
+-- No usar el puerto 5433 ni la base rag_multitenant: pertenecen a la instancia
+-- anterior. La primera instrucción aborta si la base activa no es rag_chatbot,
+-- antes de crear roles o cambiar permisos.
 -- Los roles se crean sin contraseña. La autenticación por contraseña fallará
 -- hasta configurarla fuera de este archivo, para no versionar secretos:
 --   \password rag_empresa_1
@@ -9,12 +12,17 @@
 
 \set ON_ERROR_STOP on
 
--- Comprueba la base de datos antes de conceder permisos o activar RLS.
+-- Comprueba la base de datos antes de crear roles, conceder permisos o activar RLS.
 DO $$
 BEGIN
-    IF current_database() <> 'rag_multitenant' THEN
+    IF current_database() = 'rag_multitenant' THEN
         RAISE EXCEPTION
-            'Ejecute este script en rag_multitenant, no en %',
+            'Rechazado: rag_multitenant pertenece a la infraestructura anterior. Este script solo puede ejecutarse en rag_chatbot.';
+    END IF;
+
+    IF current_database() <> 'rag_chatbot' THEN
+        RAISE EXCEPTION
+            'Ejecute este script en rag_chatbot, no en %',
             current_database();
     END IF;
 
@@ -25,9 +33,9 @@ BEGIN
 END
 $$;
 
--- CREATE ROLE no puede ejecutarse dentro de un bloque de transacción.
--- La creación condicional queda fuera de BEGIN/COMMIT y usa \gexec, metaorden
--- de psql, para poder repetir el script sin error si el rol ya existe.
+-- La creación condicional de roles se realiza antes de la transacción
+-- de permisos y políticas RLS. Se utiliza \gexec, metaorden de psql,
+-- para crear únicamente los roles que todavía no existen.
 -- No se incluye PASSWORD: repetir el script tampoco borra una contraseña ya configurada.
 SELECT format(
     'CREATE ROLE %I LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS NOINHERIT',
@@ -69,6 +77,17 @@ ALTER ROLE rag_empresa_3
 
 BEGIN;
 
+-- Segunda barrera por si este bloque se ejecuta suelto: no modifica otra base.
+DO $$
+BEGIN
+    IF current_database() <> 'rag_chatbot' THEN
+        RAISE EXCEPTION
+            'Ejecute este script en rag_chatbot, no en %',
+            current_database();
+    END IF;
+END
+$$;
+
 -- Impide que una empresa adopte el rol de otra o el rol administrativo.
 -- Sin membresía no puede usar SET ROLE ni heredar sus políticas.
 REVOKE rag_admin FROM rag_empresa_1, rag_empresa_2, rag_empresa_3;
@@ -95,7 +114,7 @@ REVOKE CREATE ON SCHEMA public
     FROM PUBLIC, rag_empresa_1, rag_empresa_2, rag_empresa_3;
 
 -- Conexión y lectura mínima. No se concede INSERT, UPDATE, DELETE ni TRUNCATE.
-GRANT CONNECT ON DATABASE rag_multitenant
+GRANT CONNECT ON DATABASE rag_chatbot
     TO rag_empresa_1, rag_empresa_2, rag_empresa_3;
 GRANT USAGE ON SCHEMA public
     TO rag_empresa_1, rag_empresa_2, rag_empresa_3;

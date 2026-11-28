@@ -1,7 +1,28 @@
 -- Esquema relacional del asistente RAG multiempresa.
+-- Ejecutar con psql, conectado a rag_chatbot. ON_ERROR_STOP impide continuar
+-- si la guarda rechaza otra base.
 -- Requiere la extensión vector, creada previamente en 01_extensions.sql.
 -- No inserta datos ni define usuarios, roles o políticas RLS.
 -- Puede ejecutarse más de una vez: las tablas y el índice ya existentes se conservan.
+
+\set ON_ERROR_STOP on
+
+-- Aborta antes de abrir la transacción y de crear tablas o índices
+-- si la base activa no es rag_chatbot.
+DO $$
+BEGIN
+    IF current_database() = 'rag_multitenant' THEN
+        RAISE EXCEPTION
+            'Rechazado: rag_multitenant pertenece a la infraestructura anterior. Este script solo puede ejecutarse en rag_chatbot.';
+    END IF;
+
+    IF current_database() <> 'rag_chatbot' THEN
+        RAISE EXCEPTION
+            'Ejecute este script en rag_chatbot, no en %',
+            current_database();
+    END IF;
+END
+$$;
 
 BEGIN;
 
